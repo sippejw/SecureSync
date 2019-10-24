@@ -5,7 +5,8 @@ import json
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
 from random_word import RandomWords
-
+from api import WormholeAPI
+import time
 
 @click.group()
 def cli():
@@ -19,7 +20,7 @@ def init():
         return
     generator = RandomWords()
     keys = generator.get_random_words(maxLength=5)
-    keystring = "secure"
+    keystring = str(len(keys))
     for key in keys:
         keystring += "-" + key
 
@@ -49,30 +50,33 @@ def connect():
     configfile.write(json.dumps(config))
     configfile.close()
     click.echo("Connected!")
-
+    connection = WormholeAPI()
+    while True:
+        try:
+            connection.receive(keystring)
+        except:
+            pass
 
 @click.command()
-@inlineCallbacks
 def sync():
-    click.echo("Syncing!")
     try:
         configfile = open('.SecureSync', 'r')
         config = json.loads(configfile.read())
         configfile.close()
         appid = config['appid']
         relay_url = config['relay_url']
+        code = config['key']
     except IOError:
         print('This directory is not linked to a SecureSync instance!')
         return
-    connection = wormhole.create("https://github.com/sippejw/SecureSync", "ws://relay.magic-wormhole.io:4000/v1", reactor)
-    connection.allocate_code()
-    code = yield connection.get_code()
-    print("code:", code)
-    connection.send_message(b"outbound data")
-    inbound = yield connection.get_message()
-    yield connection.close()
-
-
+    connection = WormholeAPI()
+    contents = os.listdir(os.getcwd())
+    for file in contents:
+        if file[0] != '.':
+            try:
+                res = connection.send(code, os.getcwd() + '/' + file)
+            except:
+               pass
 cli.add_command(init)
 cli.add_command(connect)
 cli.add_command(sync)

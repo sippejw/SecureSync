@@ -4,7 +4,7 @@ import wormhole
 import sys, os
 from helpers.cmd import send, receive
 
-app_id = "derekxinzhewang.com/circle"
+app_id = "https://github.com/sippejw/SecureSync"
 relay_url = "ws://relay.magic-wormhole.io:4000/v1"
 RENDEZVOUS_RELAY = "ws://relay.magic-wormhole.io:4000/v1"
 TRANSIT_RELAY = "tcp:transit.magic-wormhole.io:4001"
@@ -39,14 +39,8 @@ class WormholeConfig(object):
 class WormholeAPI(object):
     def __init__(self):
         pass
-    def on_js_server_ready(self, url):
-        client = zerorpc.Client()
-        client.connect(url)
-        client.echo("py-js client connected")
-        self.client = client
-        return True
-    def send(self, path):
-        arg = WormholeConfig("3-test-test-test")
+    def send(self, code, path):
+        arg = WormholeConfig(code)
         dirname = os.path.dirname(path)
         filename = os.path.basename(path)
         arg.what = filename
