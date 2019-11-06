@@ -5,8 +5,8 @@ import sys, os
 from helpers.cmd import send, receive
 
 app_id = "https://github.com/sippejw/SecureSync"
-relay_url = "ws://relay.magic-wormhole.io:4000/v1"
-RENDEZVOUS_RELAY = "ws://relay.magic-wormhole.io:4000/v1"
+relay_url = "ws://34.203.216.178:4000/v1"
+RENDEZVOUS_RELAY = "ws://34.203.216.178:4000/v1"
 TRANSIT_RELAY = "tcp:transit.magic-wormhole.io:4001"
 js_server = "tcp://127.0.0.1:4243"
 
