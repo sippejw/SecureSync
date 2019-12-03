@@ -1,11 +1,11 @@
 import click
 import os
-import wormhole
 import json
-from twisted.internet import reactor
-from twisted.internet.defer import inlineCallbacks
+import socket
+import sys
+import glob
+import hashlib
 from random_word import RandomWords
-
 
 @click.group()
 def cli():
@@ -17,6 +17,7 @@ def init():
     if os.path.isfile('.SecureSync'):
         click.echo('This directory is already linked to a SecureSync instance!')
         return
+    serverip = input('Please enter the server IP: ')
     generator = RandomWords()
     keys = generator.get_random_words(maxLength=5)
     keystring = "secure"
@@ -24,8 +25,8 @@ def init():
         keystring += "-" + key
 
     config = {
-        "appid": "https://github.com/sippejw/SecureSync",
-        "relay_url": "ws://relay.magic-wormhole.io:4000/v1",
+        "server": serverip,
+        "dir": os.getcwd() + '/',
         "key": keystring
     }
     configfile = open(".SecureSync", "w+")
@@ -40,10 +41,11 @@ def connect():
         click.echo('This directory is already linked to a SecureSync instance!')
         return
     keystring = input('Please input key given by init: ')
+    serverip = input('Please enter the server IP: ')
     config = {
-        "appid": "https://github.com/sippejw/SecureSync",
-        "relay_url": "ws://relay.magic-wormhole.io:4000/v1",
-        "key": keystring
+        'server': serverip,
+        'dir': os.getcwd() + '/',
+        'key': keystring
     }
     configfile = open(".SecureSync", "w+")
     configfile.write(json.dumps(config))
@@ -52,26 +54,66 @@ def connect():
 
 
 @click.command()
-@inlineCallbacks
 def sync():
     click.echo("Syncing!")
     try:
         configfile = open('.SecureSync', 'r')
         config = json.loads(configfile.read())
         configfile.close()
-        appid = config['appid']
-        relay_url = config['relay_url']
+        ipaddr = config["server"]
     except IOError:
         print('This directory is not linked to a SecureSync instance!')
         return
-    connection = wormhole.create("https://github.com/sippejw/SecureSync", "ws://relay.magic-wormhole.io:4000/v1", reactor)
-    connection.allocate_code()
-    code = yield connection.get_code()
-    print("code:", code)
-    connection.send_message(b"outbound data")
-    inbound = yield connection.get_message()
-    yield connection.close()
+    fileState = getFiles()
+    print(json.dumps(fileState, sort_keys=True, indent=4))
+    neededFiles = sendState(fileState, ipaddr)
+    print(neededFiles)
+    sendFiles(neededFiles, ipaddr)
 
+def getFiles():
+    fileList = []
+    for r, d, f in os.walk('.'):
+        for file in f:
+            print(file)
+            if str(file) != '.SecureSync':
+                fileList.append({'filePath':os.path.join(r, file), 'fileHash':hashFile(os.path.join(r, file)), 'fileSize':os.path.getsize(os.path.join(r, file))})
+    return fileList
+
+
+def hashFile(filePath):
+    BLOCKSIZE = 65536
+    hasher = hashlib.md5()
+    with open(filePath, 'rb') as afile:
+        buf = afile.read(BLOCKSIZE)
+        while len(buf) > 0:
+            hasher.update(buf)
+            buf = afile.read(BLOCKSIZE)
+    return hasher.hexdigest()
+
+def sendState(state, ip):
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    port = 4000
+    server.connect((ip, port))
+    server.send(json.dumps(state).encode('utf-8'))
+    neededFiles = json.loads(server.recv(2048))
+    server.close()
+    return neededFiles
+
+def sendFiles(neededFiles, ip):
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    port = 4001
+    server.connect((ip, port))
+    for path in neededFiles:
+        f = open(path, 'rb')
+        while True:
+            l = f.read(2048)
+            while(l):
+                server.send(l)
+                l = f.read(2048)
+            if not l:
+                f.close()
+                break
+    return
 
 cli.add_command(init)
 cli.add_command(connect)
