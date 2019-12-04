@@ -31,10 +31,12 @@ fileServer.connect((ip, 4001))
 fileCount = 0
 while True:
     test = server.recv(2048)
-    print(test)
     state = json.loads(test)
     if state[0]['ip'] == urllib.request.urlopen('https://ident.me').read().decode('utf8'):
-        server.recv(2048)
+        fileSize = 0
+        for f in state:
+            fileSize += f['fileSize']
+        fileServer.recv(fileSize)
     else:
         neededFiles = []
         fileSizes = []

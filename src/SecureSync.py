@@ -22,7 +22,7 @@ def init():
         return
     serverip = input('Please enter the server IP: ')
     generator = RandomWords()
-    keys = generator.get_random_words(maxLength=5)
+    keys = generator.get_random_words(hasDictionaryDef="true", limit=5)
     keystring = "secure"
     for key in keys:
         keystring += "-" + key
@@ -64,23 +64,22 @@ def sync():
         config = json.loads(configfile.read())
         configfile.close()
         ipaddr = config["server"]
+        key = config["key"]
     except IOError:
         print('This directory is not linked to a SecureSync instance!')
         return
-    fileState = getFiles()
-    print(json.dumps(fileState, sort_keys=True, indent=4))
+    fileState = getFiles(key)
     neededFiles = sendState(fileState, ipaddr)
-    print(neededFiles)
     sendFiles(neededFiles, ipaddr)
+    click.echo("Files have been sent!")
 
-def getFiles():
+def getFiles(key):
     fileList = []
     ipaddr = urllib.request.urlopen('https://ident.me').read().decode('utf8')
     for r, d, f in os.walk('.'):
         for file in f:
-            print(file)
             if str(file) != '.SecureSync':
-                fileList.append({'ip': ipaddr, 'filePath':os.path.join(r, file), 'fileHash':hashFile(os.path.join(r, file)), 'fileSize':os.path.getsize(os.path.join(r, file))})
+                fileList.append({'key': key, 'ip': ipaddr, 'filePath':os.path.join(r, file), 'fileHash':hashFile(os.path.join(r, file)), 'fileSize':os.path.getsize(os.path.join(r, file))})
     return fileList
 
 
