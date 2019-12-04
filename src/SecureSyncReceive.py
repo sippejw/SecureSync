@@ -34,6 +34,7 @@ while True:
     state = json.loads(test)
     if state[0]['ip'] == urllib.request.urlopen('https://ident.me').read().decode('utf8'):
         fileSize = 0
+        server.recv(2048)
         for f in state:
             fileSize += f['fileSize']
         fileServer.recv(fileSize)
