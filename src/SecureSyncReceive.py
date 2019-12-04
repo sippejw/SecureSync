@@ -6,6 +6,7 @@ import sys
 import json
 import os
 import hashlib
+import urllib.request
 
 def hashFile(filePath):
     BLOCKSIZE = 65536
@@ -29,27 +30,29 @@ server.connect((ip, port))
 fileServer.connect((ip, 4001))
 fileCount = 0
 while True:
-    state = json.loads(server.recv(2048))
-    neededFiles = []
-    fileSizes = []
-    print(json.dumps(state))
-    for f in state:
-        print(f['filePath'])
-        if not os.path.isfile(rootDir + f['filePath']):
-            neededFiles.append(f['filePath'])
-            fileSizes.append(f['fileSize'])
-        elif hashFile(rootDir + f['filePath']) != f['fileHash']:
-            neededFiles.append(f['filePath'])
-            fileSizes.append(f['fileSize'])
-    files = zip(neededFiles, fileSizes)
-    server.send(json.dumps(neededFiles).encode('utf-8'))
-    for fs in files:
-        print(fs[0])
-        dirPath = fs[0][:fs[0].rfind('/')]
-        if not os.path.isdir(rootDir + dirPath):
-                os.mkdir(rootDir + dirPath)
-        with open(rootDir + fs[0], 'w+') as f:
-                data = fileServer.recv(fs[1])
-                f.write(data.decode('utf-8'))
+    test = server.recv(2048)
+    print(test)
+    state = json.loads(test)
+    if state[0]['ip'] == urllib.request.urlopen('https://ident.me').read().decode('utf8'):
+        server.recv(2048)
+    else:
+        neededFiles = []
+        fileSizes = []
+        for f in state:
+            if not os.path.isfile(rootDir + f['filePath']):
+                neededFiles.append(f['filePath'])
+                fileSizes.append(f['fileSize'])
+            elif hashFile(rootDir + f['filePath']) != f['fileHash']:
+                neededFiles.append(f['filePath'])
+                fileSizes.append(f['fileSize'])
+        files = zip(neededFiles, fileSizes)
+        server.send(json.dumps(neededFiles).encode('utf-8'))
+        for fs in files:
+            dirPath = fs[0][:fs[0].rfind('/')]
+            if not os.path.isdir(rootDir + dirPath):
+                    os.mkdir(rootDir + dirPath)
+            with open(rootDir + fs[0], 'w+') as f:
+                    data = fileServer.recv(fs[1])
+                    f.write(data.decode('utf-8'))
 server.close()
             

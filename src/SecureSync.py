@@ -1,5 +1,6 @@
 #! /usr/bin/python3
 
+import urllib.request
 import click
 import os
 import json
@@ -74,11 +75,12 @@ def sync():
 
 def getFiles():
     fileList = []
+    ipaddr = urllib.request.urlopen('https://ident.me').read().decode('utf8')
     for r, d, f in os.walk('.'):
         for file in f:
             print(file)
             if str(file) != '.SecureSync':
-                fileList.append({'filePath':os.path.join(r, file), 'fileHash':hashFile(os.path.join(r, file)), 'fileSize':os.path.getsize(os.path.join(r, file))})
+                fileList.append({'ip': ipaddr, 'filePath':os.path.join(r, file), 'fileHash':hashFile(os.path.join(r, file)), 'fileSize':os.path.getsize(os.path.join(r, file))})
     return fileList
 
 
