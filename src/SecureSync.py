@@ -6,6 +6,7 @@ import os
 import json
 import socket
 import sys
+import subprocess
 import glob
 import hashlib
 from random_word import RandomWords
@@ -34,6 +35,8 @@ def init():
     }
     configfile = open(".SecureSync", "w+")
     configfile.write(json.dumps(config))
+    configfile.close()
+    pid = subprocess.Popen(["SecureSyncReceive"])
     click.echo("Successfully initialized!")
     click.echo("When connecting use the following key: " + keystring)
 
@@ -53,6 +56,7 @@ def connect():
     configfile = open(".SecureSync", "w+")
     configfile.write(json.dumps(config))
     configfile.close()
+    pid = subprocess.Popen(["SecureSyncReceive"])
     click.echo("Connected!")
 
 
